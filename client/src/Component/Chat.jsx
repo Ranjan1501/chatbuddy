@@ -1,8 +1,11 @@
 import React, { useEffect } from "react";
 import { useState } from "react";
+import "../config/SocketConnection.css";
+import ScrollToBottom from "react-scroll-to-bottom";
 
 function Chat({ socket, username, room }) {
   const [currentMessage, setCurrentMessage] = useState("");
+  const [messageList, setMessageList] = useState([]);
   const sendMessage = async () => {
     if (currentMessage !== "") {
       const messageData = {
@@ -22,24 +25,54 @@ function Chat({ socket, username, room }) {
           new Date(Date.now()).getMinutes(),
       };
       await socket.emit("send_message", messageData);
+      setMessageList((list) => [...list, messageData]);
+      setCurrentMessage("");
     }
   };
+
   useEffect(() => {
     socket.on("receive_message", (data) => {
-      console.log("Received user message data in frontend :", data);
+      setMessageList((list) => [...list, data]);
     });
   }, [socket]);
   return (
-    <div>
+    <div className="chat-window">
       <div className="chat-header">
-        <p>Live Chat</p>
+        <p>Live Chat 🔴</p>
       </div>
-      <div className="chat-body"></div>
+      <ScrollToBottom className="message-container">
+        <div className="chat-body">
+          {messageList.map((messageData) => {
+            return (
+              <div
+                className="message"
+                id={username === messageData.author ? "you" : "other"}
+              >
+                <div>
+                  <div className="message-content">
+                    <p>{messageData.message}</p>
+                  </div>
+                  <div className="message-meta">
+                    <p id="time">{messageData.time}</p>
+                    <p id="author">{messageData.author}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </ScrollToBottom>
       <div className="chat-footer">
         <input
           type="text"
+          value={currentMessage}
           placeholder="Type a message"
           onChange={(e) => setCurrentMessage(e.target.value)}
+          onKeyPress={(e) => {
+            if (e.key === "Enter") {
+              sendMessage();
+            }
+          }}
         />
         <button onClick={sendMessage}>
           <strong> ➡️</strong>
